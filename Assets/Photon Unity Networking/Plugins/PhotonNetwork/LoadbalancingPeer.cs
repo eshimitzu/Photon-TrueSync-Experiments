@@ -13,6 +13,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using ExitGames.Client.Photon;
+using UnityEngine;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 #if UNITY_4_0 || UNITY_4_1 || UNITY_4_2 || UNITY_4_3 || UNITY_4_4 || UNITY_4_5 || UNITY_4_6 || UNITY_4_7 || UNITY_5 || UNITY_5_0 || UNITY_5_1 || UNITY_6
     using UnityEngine;
@@ -23,14 +25,14 @@ using ExitGames.Client.Photon;
 
 
 
-    /// <summary>
-    /// Internally used by PUN.
-    /// A LoadbalancingPeer provides the operations and enum definitions needed to use the loadbalancing server application which is also used in Photon Cloud.
-    /// </summary>
-    /// <remarks>
-    /// The LoadBalancingPeer does not keep a state, instead this is done by a LoadBalancingClient.
-    /// </remarks>
-    internal class LoadBalancingPeer : PhotonPeer
+/// <summary>
+/// Internally used by PUN.
+/// A LoadbalancingPeer provides the operations and enum definitions needed to use the loadbalancing server application which is also used in Photon Cloud.
+/// </summary>
+/// <remarks>
+/// The LoadBalancingPeer does not keep a state, instead this is done by a LoadBalancingClient.
+/// </remarks>
+internal class LoadBalancingPeer : PhotonPeer
     {
 
         internal bool IsProtocolSecure

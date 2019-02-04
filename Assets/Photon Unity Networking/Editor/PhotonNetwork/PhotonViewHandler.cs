@@ -3,13 +3,11 @@
 #endif
 
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using UnityEditor;
-using UnityEngine;
-using System.Collections;
-using Debug = UnityEngine.Debug;
 using UnityEditor.SceneManagement;
+using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 [InitializeOnLoad]
 public class PhotonViewHandler : EditorWindow

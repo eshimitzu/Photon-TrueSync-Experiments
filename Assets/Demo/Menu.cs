@@ -342,7 +342,7 @@ public class Menu : PunBehaviour {
             Transform playerBox = playerBoxes[index];
             playerBox.GetComponent<Image>().enabled = true;
 
-            Text playerNameText = playerBox.FindChild("PlayerNameText").GetComponent<Text>();
+            Text playerNameText = playerBox.Find("PlayerNameText").GetComponent<Text>();
             playerNameText.text = PhotonNetwork.playerList[index].name.Trim();
         }		
 	}
@@ -350,7 +350,7 @@ public class Menu : PunBehaviour {
 	private void ClearPlayersGUI() {
 		foreach (Transform playerBox in playerBoxes) {
             playerBox.GetComponent<Image>().enabled = false;
-            playerBox.FindChild("PlayerNameText").GetComponent<Text>().text = "";
+            playerBox.Find("PlayerNameText").GetComponent<Text>().text = "";
 		}
 	}
 

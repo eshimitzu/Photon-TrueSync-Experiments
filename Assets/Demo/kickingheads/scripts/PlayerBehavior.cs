@@ -71,7 +71,7 @@ public class PlayerBehavior : TrueSyncBehaviour {
 		}
 
         // stops Animation
-        animator.Stop();
+        animator.enabled = false;
         // take control of the animation
         animator.StopPlayback();
     }

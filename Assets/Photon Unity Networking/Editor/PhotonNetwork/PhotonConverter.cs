@@ -19,6 +19,7 @@ using UnityEditor;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using UnityEngine.Networking;
 
 public class PhotonConverter : Photon.MonoBehaviour
 {
@@ -67,7 +68,7 @@ public class PhotonConverter : Photon.MonoBehaviour
             foreach (Object obj in objs)
             {
                 if (obj != null && obj.GetType() == typeof(GameObject))
-                    converted += ConvertNetworkView(((GameObject)obj).GetComponents<NetworkView>(), false);
+                    converted += ConvertNetworkView(((GameObject)obj).GetComponents<NetworkIdentity>(), false);
             }
             if (movePrefabs && converted > 0)
             {
@@ -100,7 +101,7 @@ public class PhotonConverter : Photon.MonoBehaviour
             EditorSceneManager.OpenScene(sceneName);
             EditorUtility.DisplayProgressBar("Converting..", "Scene:" + sceneName, 0.2f);
 
-            int converted2 = ConvertNetworkView((NetworkView[])GameObject.FindObjectsOfType(typeof(NetworkView)), true);
+            int converted2 = ConvertNetworkView((NetworkIdentity[])GameObject.FindObjectsOfType(typeof(NetworkIdentity)), true);
             if (converted2 > 0)
             {
                 //This will correct all prefabs: The prefabs have gotten new components, but the correct ID's were lost in this case
@@ -384,18 +385,18 @@ public class PhotonConverter : Photon.MonoBehaviour
         }
     }
 
-    static int ConvertNetworkView(NetworkView[] netViews, bool isScene)
+    static int ConvertNetworkView(NetworkIdentity[] netViews, bool isScene)
     {
         for (int i = netViews.Length - 1; i >= 0; i--)
         {
-            NetworkView netView = netViews[i];
+            NetworkIdentity netView = netViews[i];
             PhotonView view = netView.gameObject.AddComponent<PhotonView>();
             Undo.RecordObject(view, null);
 
             if (isScene)
             {
                 //Get scene ID
-                string str = netView.viewID.ToString().Replace("SceneID: ", "");
+                string str = netView.sceneId.ToString().Replace("SceneID: ", "");
                 int firstSpace = str.IndexOf(" ");
                 str = str.Substring(0, firstSpace);
                 int oldViewID = int.Parse(str);
@@ -408,21 +409,21 @@ public class PhotonConverter : Photon.MonoBehaviour
                 #endif
             }
 
-            view.ObservedComponents = new List<Component>();
-            view.ObservedComponents.Add(netView.observed);
+            //view.ObservedComponents = new List<Component>();
+            //view.ObservedComponents.Add(netView.observed);
 
-            if (netView.stateSynchronization == NetworkStateSynchronization.Unreliable)
-            {
-                view.synchronization = ViewSynchronization.Unreliable;
-            }
-            else if (netView.stateSynchronization == NetworkStateSynchronization.ReliableDeltaCompressed)
-            {
-                view.synchronization = ViewSynchronization.ReliableDeltaCompressed;
-            }
-            else
-            {
-                view.synchronization = ViewSynchronization.Off;
-            }
+            //if (netView.stateSynchronization == NetworkStateSynchronization.Unreliable)
+            //{
+            //    view.synchronization = ViewSynchronization.Unreliable;
+            //}
+            //else if (netView.stateSynchronization == NetworkStateSynchronization.ReliableDeltaCompressed)
+            //{
+            //    view.synchronization = ViewSynchronization.ReliableDeltaCompressed;
+            //}
+            //else
+            //{
+            //    view.synchronization = ViewSynchronization.Off;
+            //}
             DestroyImmediate(netView, true);
         }
         AssetDatabase.Refresh();
