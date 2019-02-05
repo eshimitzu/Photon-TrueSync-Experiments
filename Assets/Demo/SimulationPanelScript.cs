@@ -1,10 +1,11 @@
-﻿using TrueSync;
+﻿using Photon.Pun;
+using TrueSync;
 using UnityEngine;
 
 public class SimulationPanelScript : MonoBehaviour {
     
     public void Update() {
-        gameObject.SetActive(!PhotonNetwork.connected || PhotonNetwork.isMasterClient);
+        gameObject.SetActive(!PhotonNetwork.IsConnected || PhotonNetwork.IsMasterClient);
     }
 
     public void BtnRun() {

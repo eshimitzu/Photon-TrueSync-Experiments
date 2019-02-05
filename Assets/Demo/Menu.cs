@@ -5,12 +5,14 @@ using Photon;
 using UnityEngine.UI;
 using TrueSync;
 using UnityEngine.SceneManagement;
+using Photon.Pun;
+using Photon.Realtime;
 
 public enum PanelType { Info, Main, Nick, Match, Multiplayer, Options, Replay};
 
 // Connects to Photon Cloud, manages GUI to create/join game rooms.
-public class Menu : PunBehaviour {
-
+public class Menu : MonoBehaviourPunCallbacks
+{
     private const int TIME_TO_START_MATCH = 3;
 
     public Text infoText;
@@ -69,8 +71,8 @@ public class Menu : PunBehaviour {
         this.chatScroll = this.chatPanel.transform.Find ("ChatScroll").GetComponent<ScrollRect> ();
 
 		// Checks if it is already connected
-		if (PhotonNetwork.connected) {
-			OnReceivedRoomListUpdate ();
+		if (PhotonNetwork.IsConnected) {
+            OnRoomListUpdate(new List<RoomInfo>());
 			ActivePanel (PanelType.Match);
 			return;
 		}
@@ -114,9 +116,9 @@ public class Menu : PunBehaviour {
 
 	// show multiplayer menu, with options to create or join a match
 	public void MainPanel_MultilayerBtn() {
-		PhotonNetwork.player.name = this.nickname;
-        PhotonNetwork.lobby = new TypedLobby(lobbyName, LobbyType.Default);
-        PhotonNetwork.ConnectUsingSettings("v1.0");
+		PhotonNetwork.LocalPlayer.NickName = this.nickname;
+        PhotonNetwork.CurrentLobby = new TypedLobby(lobbyName, LobbyType.Default);
+        PhotonNetwork.ConnectUsingSettings();
 
         ReplayUtils.replayContext = lobbyName;
 
@@ -187,7 +189,7 @@ public class Menu : PunBehaviour {
 
 	// start a match and send the same command to all other players
 	public void MultiplayerPanel_StartMatchBtn() {
-        PhotonNetwork.room.visible = false;
+        PhotonNetwork.CurrentRoom.IsVisible = false;
 
         int syncWindow = int.Parse(configSyncWindow.text);
         int rollbackWindow = int.Parse(configRollbackWindow.text);
@@ -199,7 +201,7 @@ public class Menu : PunBehaviour {
             syncWindow = -1;
         }
 
-        photonView.RPC ("StartMatch", PhotonTargets.All, syncWindow, rollbackWindow, panicWindow);
+        photonView.RPC ("StartMatch", RpcTarget.All, syncWindow, rollbackWindow, panicWindow);
 	}
 
 	public void MultiplayerPanel_ChatSend() {
@@ -207,9 +209,9 @@ public class Menu : PunBehaviour {
 		if (text != "") {
 			this.chatInput.text = "";
 
-            int indexPlayer = System.Array.IndexOf(PhotonNetwork.playerList, PhotonNetwork.player);
-            MultiplayerPanel_ChatReceived (PhotonNetwork.playerName, text, indexPlayer);
-			photonView.RPC ("MultiplayerPanel_ChatReceived", PhotonTargets.Others, PhotonNetwork.playerName, text, indexPlayer);
+            int indexPlayer = System.Array.IndexOf(PhotonNetwork.PlayerList, PhotonNetwork.LocalPlayer);
+            MultiplayerPanel_ChatReceived (PhotonNetwork.NickName, text, indexPlayer);
+			photonView.RPC ("MultiplayerPanel_ChatReceived", RpcTarget.Others, PhotonNetwork.NickName, text, indexPlayer);
 
 			this.chatInput.ActivateInputField ();
 		}
@@ -256,19 +258,18 @@ public class Menu : PunBehaviour {
         SceneManager.LoadScene(levelToLoad);
     }
 
-    public override void OnConnectionFail (DisconnectCause cause) {
+    public override void OnDisconnected(DisconnectCause cause) {
 		ActivePanel (PanelType.Main);
 	}
 		
     public override void OnConnectedToMaster() {
 		infoText.text = "Entering lobby...";
-        PhotonNetwork.JoinLobby(PhotonNetwork.lobby);
+        PhotonNetwork.JoinLobby(PhotonNetwork.CurrentLobby);
     }
 
 	// updates the possible matches list
-	public override void OnReceivedRoomListUpdate () {
-		RoomInfo[] roomList = PhotonNetwork.GetRoomList ();
-		if (roomList.Length == 0) {
+	public override void OnRoomListUpdate(List<RoomInfo> roomList) {
+		if (roomList.Count == 0) {
 			matchJoinText.text = "No Matches Online";
 		} else {
 			matchJoinText.text = "Join Match";
@@ -276,18 +277,18 @@ public class Menu : PunBehaviour {
 
 		int currentMatchesCount = this.matchListContent.transform.childCount;
 
-		if (roomList.Length >= currentMatchesCount) {
-			for (int index = 0; index < (roomList.Length - currentMatchesCount); index++) {
+		if (roomList.Count >= currentMatchesCount) {
+			for (int index = 0; index < (roomList.Count - currentMatchesCount); index++) {
 				GameObject newMatchBtn = Instantiate (matchPrefabBtn);
 				newMatchBtn.transform.SetParent(this.matchListContent, false);
 			}
 		} else {
-			for (int index = 0; index < (currentMatchesCount - roomList.Length); index++) {
+			for (int index = 0; index < (currentMatchesCount - roomList.Count); index++) {
 				Destroy(this.matchListContent.transform.GetChild (currentMatchesCount - (index + 1)).gameObject);
 			}
 		}
 
-		for (int index = 0; index < roomList.Length; index++) {
+		for (int index = 0; index < roomList.Count; index++) {
 			MatchJoiner matchJoiner = this.matchListContent.transform.GetChild (index).GetComponent<MatchJoiner>();
 			matchJoiner.UpdateRoom (roomList[index]);
 
@@ -295,7 +296,7 @@ public class Menu : PunBehaviour {
 			matchJointRect.localPosition = new Vector3 (matchJointRect.localPosition.x, -(index * matchJointRect.sizeDelta.y), 0);
 		}
 
-		this.matchListContent.sizeDelta = new Vector2 (this.matchListContent.sizeDelta.x, roomList.Length * matchPrefabBtn.GetComponent<RectTransform>().sizeDelta.y);
+		this.matchListContent.sizeDelta = new Vector2 (this.matchListContent.sizeDelta.x, roomList.Count * matchPrefabBtn.GetComponent<RectTransform>().sizeDelta.y);
 	}
 
 	// When connected to Photon Lobby, disable nickname editing and messages text, enables room list
@@ -311,26 +312,26 @@ public class Menu : PunBehaviour {
         UpdatePlayerList();
     }
 
-    public override void OnPhotonPlayerConnected(PhotonPlayer newPlayer) {
+    public override void OnPlayerEnteredRoom(Player newPlayer) {
         UpdatePlayerList();
     }
 
-    public override void OnMasterClientSwitched(PhotonPlayer newMasterClient) {
+    public override void OnMasterClientSwitched(Player newMasterClient) {
 		MultiplayerUpdateVisibility ();
     }
 
     private void MultiplayerUpdateVisibility() {
-        this.configBtn.SetActive(PhotonNetwork.isMasterClient);
+        this.configBtn.SetActive(PhotonNetwork.IsMasterClient);
         if (this.configBtn.activeSelf) {
             configSyncWindow.text = TrueSyncManager.TrueSyncGlobalConfig.syncWindow + "";
             configRollbackWindow.text = TrueSyncManager.TrueSyncGlobalConfig.rollbackWindow + "";
             configPanicWindow.text = TrueSyncManager.TrueSyncGlobalConfig.panicWindow + "";
         }
 
-        multiplayerStartMatch.gameObject.SetActive (PhotonNetwork.isMasterClient);
+        multiplayerStartMatch.gameObject.SetActive (PhotonNetwork.IsMasterClient);
 	}
 
-    public override void OnPhotonPlayerDisconnected(PhotonPlayer disconnetedPlayer) {        
+    public override void OnPlayerLeftRoom(Player disconnetedPlayer) {        
         UpdatePlayerList();
     }    
 
@@ -338,12 +339,12 @@ public class Menu : PunBehaviour {
 	public void UpdatePlayerList() {
 		ClearPlayersGUI ();
 
-        for (int index = 0; index < PhotonNetwork.playerList.Length; index++) {
+        for (int index = 0; index < PhotonNetwork.PlayerList.Length; index++) {
             Transform playerBox = playerBoxes[index];
             playerBox.GetComponent<Image>().enabled = true;
 
             Text playerNameText = playerBox.Find("PlayerNameText").GetComponent<Text>();
-            playerNameText.text = PhotonNetwork.playerList[index].name.Trim();
+            playerNameText.text = PhotonNetwork.PlayerList[index].NickName.Trim();
         }		
 	}
 
