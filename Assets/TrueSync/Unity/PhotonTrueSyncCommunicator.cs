@@ -1,3 +1,6 @@
+using ExitGames.Client.Photon;
+using Photon.Pun;
+using Photon.Realtime;
 using System;
 
 namespace TrueSync {
@@ -9,7 +12,9 @@ namespace TrueSync {
 
         private LoadBalancingPeer loadBalancingPeer;
 
-        private static PhotonNetwork.EventCallback lastEventCallback;
+        public delegate void EventCallback(EventData eventData);
+
+        private static EventCallback lastEventCallback;
 
         /**
          *  @brief Instantiates a new PhotonTrueSyncCommunicator based on a Photon's LoadbalancingPeer. 
@@ -25,25 +30,33 @@ namespace TrueSync {
         }
 
         public void OpRaiseEvent(byte eventCode, object message, bool reliable, int[] toPlayers) {
-            if (loadBalancingPeer.PeerState != ExitGames.Client.Photon.PeerStateValue.Connected) {
+            if (loadBalancingPeer.PeerState != PeerStateValue.Connected) {
                 return;
             }
 
             RaiseEventOptions eventOptions = new RaiseEventOptions();
             eventOptions.TargetActors = toPlayers;
 
-            loadBalancingPeer.OpRaiseEvent(eventCode, message, reliable, eventOptions);
+            SendOptions sendOptions = new SendOptions();
+            sendOptions.Reliability = reliable;
+
+            loadBalancingPeer.OpRaiseEvent(eventCode, message, eventOptions, sendOptions);
         }
 
         public void AddEventListener(OnEventReceived onEventReceived) {
-            if (lastEventCallback != null) {
-                PhotonNetwork.OnEventCall -= lastEventCallback;
+            if (lastEventCallback != null)
+            {
+                PhotonNetwork.NetworkingClient.EventReceived -= NetworkingClient_EventReceived;
             }
 
-            lastEventCallback = delegate (byte eventCode, object content, int senderId) { onEventReceived(eventCode, content); };
-            PhotonNetwork.OnEventCall += lastEventCallback;
+            lastEventCallback = delegate (EventData eventData) { onEventReceived(eventData.Code, eventData.CustomData); };
+            PhotonNetwork.NetworkingClient.EventReceived += NetworkingClient_EventReceived;
         }
 
+        private void NetworkingClient_EventReceived(EventData eventData)
+        {
+            lastEventCallback.Invoke(eventData);
+        }
     }
 
 }

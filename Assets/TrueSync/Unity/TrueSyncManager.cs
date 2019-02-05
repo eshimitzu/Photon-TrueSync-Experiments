@@ -2,6 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using Photon.Pun;
+using Photon.Realtime;
 
 namespace TrueSync {
     /**
@@ -226,11 +228,11 @@ namespace TrueSync {
 
             bool isOfflineMode = false;         // MIK EDIT
             ICommunicator communicator = null;
-            if (!PhotonNetwork.connected || !PhotonNetwork.inRoom) {
+            if (!PhotonNetwork.IsConnected || !PhotonNetwork.InRoom) {
                 Debug.LogWarning("You are not connected to Photon. TrueSync will start in offline mode.");
                 isOfflineMode = true;           // MIK EDIT
             } else {
-                communicator = new PhotonTrueSyncCommunicator(PhotonNetwork.networkingPeer);
+                communicator = new PhotonTrueSyncCommunicator(PhotonNetwork.NetworkingClient.LoadBalancingPeer);
             }
 
             TrueSyncConfig activeConfig = ActiveConfig;
@@ -287,12 +289,12 @@ namespace TrueSync {
                 }
                 else
                 {
-                    List<PhotonPlayer> players = new List<PhotonPlayer>(PhotonNetwork.playerList);
+                    List<Player> players = new List<Player>(PhotonNetwork.PlayerList);
                     players.Sort(UnityUtils.playerComparer);
 
-                    foreach (PhotonPlayer p in players)
+                    foreach (Player p in players)
                     {
-                        lockstep.AddPlayer((byte)p.ID, p.NickName, p.IsLocal);
+                        lockstep.AddPlayer((byte)p.ActorNumber, p.NickName, p.IsLocal);
                     }
                 }
             }
